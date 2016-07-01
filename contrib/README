@@ -1,0 +1,18 @@
+
+Things I've used that were created by others
+
+- bitstream vera fonts
+- Freetype Library
+- stb_vorbis.c
+- lua
+
+
+
+You might need the Visual Studio redistributable
+
+Microsoft Visual C++ 2005 Redistributable Package (x86)
+	http://www.microsoft.com/downloads/details.aspx?FamilyId=32BC1BEE-A3F9-4C13-9C99-220B62A191EE&displaylang=en
+
+MSDN : Info about Deployment(C++) VS.80 
+	http://msdn.microsoft.com/en-us/library/zebw5zk9(VS.80).aspx
+

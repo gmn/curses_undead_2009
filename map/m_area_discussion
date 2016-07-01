@@ -1,0 +1,256 @@
+09/20/08
+
+ok, I spent yesterday and this morning trying to figure out the map system
+I had setup so far.  I was heading in the right direction, but I certainly
+wasn't there yet.  
+
+part of it is just clarification.  I need to keep thinking about it.  rename
+things again to reflect what they actually are.  There is Map_t, which is 
+misleading because it's real use isn't for an ingame map structure but for a 
+data structure that a map file gets loaded into initially.
+
+So there are issues basically, and these must be discussed.
+
+A mapFile as you have it loaded in the editor has tiles.  I then defined the
+notion of Area and subArea.  
+
+I think that you are always in an Area.  that there can be a doorway that leads
+from one Area to another Area, and this can be a fast doorway, granting instantaneous passage, if you are going between 2 areas on the same map.
+
+SubAreas were created for visibility changes within an area.  (i believe).
+So that in one shot, you would have a visible hallway that your character is
+in, and an open door on the right side.  to the right of the door, you see
+stone, , which looks like all the other areas outside of the hallway.  like
+bedrock.  like you would see in empty spaces, like in Fallout2.
+
+but when your character goes in the doorway, the visibility of the subarea
+triggers, and the display tiles change to show an open room.  
+
+This alternate set of display tiles is defined as a subArea.  Thats what a
+subArea is.  You define one in the editor, and this allows you the ability to
+define alternate display tiles, and then you can connect the subArea to a 
+trigger by unique name.  
+
+Areas, are maps, there can be 1 to many Areas in a mapFile.  
+Areas are mutually exclusive.  There may be 2 areas right next to each other
+in coordinates on a single mapFile, but you wont see the one that you are not
+currently in.  There could be a door connecting the two however, and you could
+pass through it, revealing one and hiding the one you can out of.
+
+whereas, you could see how you could have multiple subAreas that are visible
+at the same time, but are also toggle-able, to whatever artifice, script or
+trigger they respond to.  
+
+** The one caveat of subAreas WAS that all overlapping subAreas
+shared a common set of colModels.  but I'm not totally sold on this one way
+or the other right now.  
+
+World_t is the ur-data structure at runtime.  you load in the map, it is 
+cut up into areas, the blocklist is built, etc.. and it's all stored and 
+managed in the World_t.  In fact, I spose it could be possible that you could
+load multiple mapFiles, but there would be coordinate overlaps there and I'm
+not sure how that works yet.  I spose that each entity initially belongs
+to one Area.  so it can be managed that way.  but the BlockList also wouldn't
+work, if you had overlapping coordinate sets.
+
+So no, one World_t per mapFile.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+TODO:
+
+- rename Map_t --> mapFile_t
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+a good question to ask then is, what am I trying to accomplish?  Do I need
+subAreas, and are they the best way to accomplish this thing that they do.
+
+I do need something.  I have Areas, which make sense being what they are.
+Areas allow you to have multiple environments in the same mapFile, within
+the mapEditor, at the same time, that are probably connected to one-another,
+but are mutually exclusively visible.  Only 1 area is ever active or visible
+at a time, so really the nature of the whole mapFile, and it's intrinsic 
+coordinate system are completely hidden from the player.  
+
+What a subArea accomplishes, in effect is the ability to have 2 different 
+sets of display tiles over a subArea within an Area.
+
+questions:
+* can subArea overlap?
+	NO, because dispTiles are limited to 2 visibility levels
+* do we need to have a default subArea, if none are created?
+	NO, although a default Area will be created for a map, if none are 
+		defined for that map.  all dispTiles default to displaying something.
+		subAreas merely define ADDITIONAL visibilities, so in the absense of a
+		subArea, the default vis will be the only one.
+* will we need the ability to support 3 or more subAreas, over a single spot?
+	NO, I don't think so.  2 for now.  if we need 3, it shouldn't be hard to
+		change.  perhaps it be best to keep in mind a system where a 2nd 
+		overlapping subArea could be defined to reveal a 3rd visibility for a
+		block, just in case.
+	YES, changed my mind.  if I'm going to expect to support them anyway,
+		go ahead and put in pointers for 8 total.  Expecting to use more than
+		one is a good thing.
+* how are we handling collision models?  do these also need to be stored in
+	the subArea as 'alternate sets', therefor giving the map designer the 
+	ability to create maps where the collidable objects in a scene change?
+	or can this be accomplished with entities alone to the same satisfaction?
+
+	Answer:
+	Collisions will be one off.  colModels as they pertain to mapTiles are 
+	static things, that never change.  all colModels that change belong to
+	entities in some fashion.  so the second part of thta question is correct.
+	if you want a dynamic map, use entities.
+
+	all subAreas do then, is change the visibility, not the collision.  you
+	can still block an area with an entity to deny access or whatever.  but the
+	connect will be merely circumstantial for the most part.
+
+Localization:
+	side note: today i realized the reason that people have text files with all
+	of the text of an application in it.  For localization to different languages.  I had just never guessed this before.  You have either plaintext with 2 things: LABEL: Text <newline> and just pair every printed peice of text in the entire application as being read in from this file.  So this way you can create easily different files for different languages, as many as you want.
+
+So, I think I have subAreas & Areas worked out in my mind satisfactorally.  The
+next thing is the blocklist, and the rendering pass.  This is a difficult 
+problem, especially in that the dispTiles can have various layer numbers, 
+which means that they must be drawn in a certain order.   It's solvable, but
+it is a complicated problem, and I need to consider all the possibilities first.
+
+--------
+alright, I'm getting further down this morass of notes I left myself.  I just
+read a part that says we can have 0, or 1, or many subAreas, and that they
+can overlap or not.  and that freedom is good.  I'm going to go along with
+this description.  It seems like it was arrived at after a considerable amount
+of thought.  secondly, 
+
+the MapEditor could have a function to duplicate the polys in display tiles
+for a new subArea, so that this way you could get exact 1-to-1 matching 
+geometries for a subArea if that is your intention.  This also allows you the
+freedom to use any geometry that you want for a subArea.  
+
+wait, not sure that makes sense with the way that I have the data structures
+set up.  It makes sense conceptually, but I have the actually visibility 
+part changing INSIDE the dispTile (the poly remains the same).  Yeah, these
+2 should be divorced somehow.  But how?
+
+----------
+visibility toggling.  This is different than a subArea.  Before I was lumping
+it in to be the same thing.  It's similar, but not the same.  Visibility
+toggling is what happens when there is darkness, which is lifted dynamically.
+your character possesses a lamp that has a radius of 10.  so that as your
+character moves different parts of the map are illuminated differently, in
+real time.  
+
+Questions:
+	- falloff.  Does it have falloff?  which means, not just binary darkness,
+		either 0 = dark, 1 = light, but 0 = dark, 0.2 = inky, 0.5 = dim, 0.7 = 
+		hazy, 1.0 = clear.  
+
+		YES, make a per-dispTile illumination floating-point value.
+
+	- do we want to just auto-compute the illumination of the texture as 
+		opposed to providing an alternate, artist written set of textures?
+		
+		YES, probably, auto-compute dimness based on an equation.
+	
+These will go in the dispTile directly.  No doubt.  Probably it might just be
+a calculation.  We'll have a few ways, an equation to calculate global illumination.  Time of day, weather, character's eyesight score, and then things like a
+lamp, street lamps, and other lights on the map.  and then just run some sort of filter over the texture, even if it be blitting the texture and then blitting a transparent grey sheet OVER the texture to dull it's color.  
+
+This is different from subArea.  for the initial timebeing we should build in
+the mechanism, default it to 1.0 light, and not worry about it.  
+
+::::::::::::::::::::
+:: Rendering Pass ::
+::::::::::::::::::::
+
+1 - create list of blocks that might possess visible dispTiles 
+	(checking edge flags for dispTiles that cross the block boundary)
+2 - keep the queues in the blocks sorted.  This way we don't have to create
+	any other lists, and can just use the lists within the blocks themselves
+3 - determine the smallest layer number & largest layer number
+	- layerSmallest
+	- layerLargest
+4 - set the currentDrawingLayer = layerSmallest
+
+5 - 
+	while ( currentDrawingLayer <= layerLargest ) {
+		foreach block: 
+			if ( first tile.layer > currentDrawingLayer ) {
+				next block;
+				continue;
+			}
+			while ( block.tile.layer == currentDrawingLayer ) {
+				// draw
+				next tile;
+			}
+		++currentDrawingLayer
+	}
+
+6 - draw entities by layer
+
+((( Discussion:  this way, there are no lists that need to be built.  No lists
+that need to be sorted.  Nothing to be managed.  You just go through any blocks
+that might have something visible in them, and then look for the right layer,
+if all layer numbers are larger, skip the block and move to the next.  each time
+through the blocks increment the layer number we're searching for.  until we've
+examined all the layer#s that are in the range.  )))
+
+::::::::::::::::::::
+:: Collision Pass ::
+::::::::::::::::::::
+
+** Things only collide with other things are their own layer **
+
+* Area_t CAN'T overlap
+* subArea_t CAN overlap
+
+==============================================================================
+Basically, I need to have all this sorted out until it is CRYSTAL CLEAR,
+the data struct hierarchy, the rendering, the collision detection, the 
+different visibilities.  Once it is 
+
+- A mapFile can have 0 or more Area
+- if a mapFile has 0 Area, 1 default Area is created automatically.
+- Area can not overlap, a check should be run on mapLoad, and in the map
+	editor to make sure
+- An area can have 0 or more subArea.  each additional subArea merely provides
+	it's own material/Animation to be displayed for each dispTiles within the 
+	subArea.
+- subAreas DONT provide additional dispTile/Polygon information, just an
+	alternate material.  Quintessential Example: room with roof, enter room,
+	roof disappears.  In this case, both the floor & roof are displayed all 
+	the time, but the layer number of the roof is greater than the floor so
+	the floor is always covered up.  The subArea defined here, will specify
+	a set of mapTiles, with EMPTY materials.  the subArea will be defined on
+	mapLoad, and when it is toggled by the room entry trigger entity, the 
+	alternate tile will be drawn, which is NO TILE, and we will be able to see
+	the floor instead.
+- World_t manages & contains everything.  Areas, masterlists
+- 
+
+::::::::::::::
+:: map load ::
+::::::::::::::
+- call ME_MapLoad()
+- syphon the data structures from the mapedit module, over to the map module
+- call ME_DestroyLocal() to relinquish module memory
+- create designated Areas &/or create a default Area if none specified
+- foreach Area, 
+	- compute Blocks needed to cover area
+	- create Block pointer array and initialize to NULL
+	- go through ALL mapTiles, and for every poly determine the theoretical block indexes that it 
+		crosses into.  
+		- if said block isn't created, then create it, even if the poly merely crosses OVER it,
+			you still must create the Block and set the edge flag.
+		- go through mapTiles again and 
+			- create a dispTile for each 
+			- add the dispTile to it's Block if it is inside this Area
+				- then remove it from the mapFile_t::dispTiles list
+			- also add it's colModel if there is one, to the Block::colModels list
+		- connect up all the blocks N,S,E,W pointers
+	- sort all dispTiles by layer	
+	- sort all entities by Layer
+	- sort all colModels by Layer (hmm, need to add layer to datatype)
+
+

@@ -1,0 +1,3 @@
+
+Gimp palette files must be first cleaned of any header, footer or comment
+sections, so that it's just raw rows of numbers.  then it should work.
