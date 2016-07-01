@@ -1,0 +1,169 @@
+==============================================================================
+BUGS:  (!! must be fixed)
+
+X copying Entities (like Doors). the collision model doesn't copy properly. It may be that the copied entity, somehow changes the collision model of the original one that it was copied from.  
+
+!! - All Entities require explicit copy constructors
+
+X put the "if ( col ) delete col;" back in ~Door_t
+
+!! collision model doesn't turn when the Entity_t turns.  this makes collision
+    detection only appear active when the thing in question is in its original
+    position.  
+
+!! when a portal is searching for an area, if it doesn't find the one it wants
+    it prints out a message and gets stuck in an infinite loop.  Instead it
+    should NOT get stuck in that loop.
+
+!! After teleporting, the backgrounds don't show up.  (actually, could be because I have 3 areas now. maybe they are becoming attached to the wrong area..)
+
+- adding/removing palettes crash
+- copying poly from one palette to another, if they are at different zooms,
+    the first time you copy, if you don't adjust teh zoom at all in the 2nd 
+    palette, it will paste, choosing a zoom & window location of the first
+    original palette.
+- drawing entities w/o material, should have default option to draw generic
+    color (or autogen a texture). the bug is that it requires ent_notex.tga,
+    if you are going to make this a mandatory material, then there should be
+    a small , hardcoded list of MANDATORY materials and file-structures of 
+    "zpak" or whatever the "fs_game" folder is. it would be even cooler if 
+    there was a way to programatticcaly create this whole subset
+
+- can't have program crashing if it tries to load or play a sound that isn't
+    there. (some things are essential like ent_notex & font, but not sounds)
+
+- setting com_resolution from cmdline or player.cfg doesn't work. it goes to the same res every time.
+
+- would like to have it so that it would fail if there's no game.def. right
+    now it exits if it can't find one. but if you provided a map at commandline
+    that should be sufficient to run (this isn't a bug, so much as a stupid
+    thing that I should fix) (we'll encounter it further when we get to 
+    gamestate, fix it then)
+
+- Blocksize, this has to be figured out. it's killing my game. also, backgrounds should be able to be manually set to an Area. because I might want a gigantic background, but having a gigantic area is ridiculous. think about it, what an area do? it provides a bounding box, with which to build Boxes out of , to organize the world geometry. also, maybe you could manually set blocksize.
+
+- uniqueID gen for entities is broke. I just loaded a map where the first
+    entity is names SPAWN_0002 (first of all, it should be 1), then I created
+    another spawn and it's default name was SPAWN_0002!
+
+- when you move a world spawn by [dx,dy]  you should also adust the viewport
+    coordinates by the same delta
+
+- Mapeditor: Shift modifier key gets stuck after copy+pasting an entity
+    (tip: can work-around by just pressing SHIFT)
+
+- coordinate animation: zombie: when starting a swing, even if the player
+    goes out of attack range, at least finish the swing animation before 
+    switching to another one.  & always start the swing animation from frame 0
+
+- there may be a problem in copy+pasting entities, in that it works fine, and
+    pastes them correctly, but doesn't make a new copy to put back into the 
+    clipboard for ANOTHER paste later. (note this might or might not work)
+
+==============================================================================
+FEATURES:
+X gvar _lockConsole 0
+- sound definitions loaded from script, not hardcoded (map?) 
+- player character sprite/animations loaded from script
+- write a map making tutorial, detailing the steps you must make to make
+    your own mod/content folder.
+- ability to select MaterialTiles & Entities at the same time, primarily
+    to aid in copy+pasting large sections of map by simple select.  Don't
+    have that now and is becoming a major pain.
+- gvar & CMD autocomplete in the Console
+- need stairs sprites, down & up
+- need message box class: 
+    - position can be specified, or defaults to center of screen.
+        also center of top, center of bottom, Above an entity,  
+    - can be blocking (game stops, waits for key input to resume)
+    - can be timed (just floats for a moment and goes away)
+    - example: user presses 'ESC'. blocking pops up in middle of screen,
+        "would you like to return to the main menu? Y/N?"
+        absolutely nothing happens until you press: Y, N, ESC
+- NPCs to talk to, will give you stuff, or tell you useful tips
+- Book items that you can read, that contain some passage of text, which
+    might perhaps contain a clue as to what happened.
+- Newspaper items, same thing, but far more likely to be plot-usable.
+- add "shrink" console command, which generates a shrunk version of a map.
+    also, could experiment around with removing requirements for white space
+    in various parts of the map, because the brackets can be used as delimiters
+    which would decrease map size by almost half. 
+- List of stuff:
+    - newspaper
+    - radio
+    - cellphone
+    - laptop computer
+    - antibiotics
+    - anti-zombification medicin
+    - 5-gallon water jug
+    - water purification tablets
+    - water purifier 
+        - see, at first you put tablets in your waterjug, but they're hard to
+            find and it's a pain in the ass, but later, you get the water 
+            purifier, and you can just keep using it
+    - set of wrenches
+    - diesel generator
+    - rope
+    - marijuana
+    - money
+    - precious jewelry
+    - sleeping bag
+    - can of gasoline
+    - keys
+    - rifle
+    - baseball bat
+    - can of beens
+    - case of beer
+    - 5th of scotch
+    - pound of hard-salami
+    - smoked salmon
+    - peanuts
+    - pistacios
+    - key-card
+    - bag of groceries
+    - Dusty old book
+    - (((other things from the original)))
+    - lockbox
+
+- in "Savage Empire" you can talk to NPCs. They tell typically tell you a couple paragraphs about what is on their mind.  A few words in that paragraph are highlighted in RED.  After they're done talking you can ask them about the highlighted words.  This would be a really cheep way to do NPC AI.  I mean, it's not really AI, but a set of prepared responses, in the guise of an IA. which is super ingenious, and I've never heard of it before.  Still, the one element that this needs to work is a pixel artist. because you should have at least one decent facial portrait, to give weight to the illusion. without that it's not as potent.
+
+END FEATURES
+==============================================================================
+SCRIPT:
+- rednecks walk around outside of their trailer, drinking beer, and popping
+    up dialog bubbles:
+    "Git er done!"
+    "Boy I wish Nascar were still here."
+    "Hey boy, you want some racoon Jerky?"
+    "It's mighty tasty"
+    "I made it myself"    
+- 
+END SCRIPT
+==============================================================================
+GAME_MECHANICS
+
+## Buildings:
+main city map will have buildings, that show up as squares with doors, they
+will be a solid color, that DRAW OVER THE PLAYER, (so that the player moves
+under them). Then the player will hit a teleport, which will deposit him 
+inside the building's front entrance.  Inside the building, there will be 
+hallways with rooms to explore, the rooms will have adjacent rooms and 
+closets, all will be open and visible from above.  The buildings will have 
+stuff in them to grab, and lots more zombies too.
+
+## AutoDoors:
+when you walk up to a door, it will either make a DOOR_OPENING sound and 
+open , or a DOOR_LOCKED sound, and not open.  A message will be posted to the
+message are either way, stating: "the door is unlocked", "the door won't budge".
+all of this happens automatically via trigger detection.  there is no use key
+in this case.  
+
+## Titles:
+at the beginning of new levels (teleports), display the name of the level
+or area or whatever at the top city in big 70pt text. at the city map:
+"City", inthe apartment building: "Apartment Building", and so on.  I'm 
+picturing white text, in a sort of scriptic font. not typeface or helvetica
+or something, but script like something in silent movies.
+
+END GAME_MECHANICS
+==============================================================================

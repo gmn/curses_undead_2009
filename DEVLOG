@@ -1,0 +1,790 @@
+* Zombie Engine, born on 04/18/2007
+
+(previous logs in zombiecurses)
+
+==============================================================================
+20090921 - Necesities:
+
+- full-proof map reloading (this means memory debugged too, so there's no leak)
+- full-proof music reloading
+    (both these crash upon 2nd or 3rd attempt of loading something)
+- disable console commands meant for the mapEditor only when the game is running, and vice-versa 
+- get Lua figured out, 100%
+- abstract it so that game-logic is 100% done in Lua
+- design whole levels & characters on paper, before coding.
+- figure out what weapon interaction is, exactly
+- properly abstract weapon projectile system
+* get gvar loading order 100% figured out & working correctly
+- move to HG, separate assets into their own HG repo, minimal
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ok, what is the minimum that I need to make a game? I just need:
+- badguys with acceptable AI, 
+- a combat system that is acceptable and fun (guns, shooting, or turn-based..)
+- A generic windowing class for pop-up messages and dialog. 
+- tunnels and doors, so that presumes an acceptable anti-aliased tile-set. 
+- the badguys presume working Lua that makes sense and is organized correctly.
+- a camera class fully accessible to Lua, with: moves, pans, zooms, centers, 
+    fades, dissolves, shaking, 
+- full-proof robust map loading & reloading
+- robust music loading (just fix whatever is wrong)
+- gamestate code manager, with: 
+    - start menu
+    - enter level splash screen
+    - level
+    - finish level splash screen
+    - level order
+- all of this available to lua
+- HUD
+- proper UI flow, (eg, press ESC=>"return to Main Menu Y/N?"=>Y->Menu:N->remove text)
+- decent set of sounds, no terrible ones (robot explode is terrible, doors are bad), 
+- correct sprite sets for moving every direction, with guns, w/o guns, ...
+
+Jesus fucking christ. It's so goddamn much. not to mention, all the other things that are lurking and implied in the things above. On one hand, I'm pretty close, a few months away, on the other, I could start a game in curses and have a prototype by dinner. I can't do graphics, so that is looking much more desirable as this moves along.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+where to start? take most direct path.
+- fix map reloading
+- fix music playing multiple crash
+- get Lua at 100% using a single luaState & REGISTRY table
+- setup so game logic runs entirely in Lua.
+    - loads script from game.def, and script controls game
+(((zombiecurses v1.0 will be done w/ NO SPRITES, just pixel squares for character, walls, doors, etc.)))
+- create 8x8 player & monster sprites
+- get player walking/movement, shooting, using animations looking perfect,
+    also, animFrames need to roughly be in sync with how much the background
+    moves
+- put game data "zpak" into a separate repo, and use a copy_game_data.bat to
+    set up a working version of the game for testing
+- get GL to display with NO anti-aliasing, hard edges
+- create Main Menu code
+- create splash screen code
+- create simple messageBox() drawing class
+- draw simple world on graph paper, base world map entirely on curses version
+    - fixed main world map. have "special" buildings and normal ones, you can
+    enter any of them looking for stuff.  the normal buildings are randomly
+    generated, the special ones are fixed.
+- VERSIONS
+    v0.1    - just has main map & monsters, w/ hud, 2 weapons: bat & rifle
+                no splash, no menu, no savegames, no special camera. start w/
+                bat, must find rifle, and find "box of cartriges"
+    v0.2    - has main map & you can enter buildings: either fixed or generated 
+    v0.3    - find money, treasure, inventory items. inventory screen 
+                (even if they dont do anything)
+    v0.4    - splash & menu screen
+    v0.5    - camping
+    v1.3    - people, sick, elderly, able-bodied
+
+Ok, I hate to say this, but what about making it RPG?  because I can't figure
+out battle controls.
+
+anyway, so it looks like, go as far down to basic stuff, 8x8 sprites, top-down, no texture maps, and construct a 2D, top-down world. you need a couple message systems telling you what things are, the mountains, freeway, lake, building doorways, and messages. and probably most importantly, well.  I just figured out melee, at least in version 1, v1.0, it will be 2 weapons: start with the Bat, and it takes like 6 hits to get a zombie. you need a life-meter for any of this to mean anything. and w/ like 3 or more zombies, they should surroundyou and try to box you in making it too dangerous to confront them.  So really, just get the bat working.  and the zombies.  player+bat+zombies+map+hud+doors
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+v1.0 = PLAYER + BAT + ZOMBIES + FINISHED CITY MAP + HUD + GUN + AMMO + HEALTH
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+that's it. that's the v1 of the game. then we add people, rednecks, cellphones,
+door unlocking, random treasure hunting mazes, channel 7 building, the boat keys, ... DOORS
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ v1.0
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+PLAYER presumes correct animations, ZOMBIE presumes correct animations, 
+    4 directions, step pacing should be in rhythm w/ background movement
+    also 4 directions of "use" anims, and 4 directions of "bat" anims.
+    zombies, get 4 directions of walking, and 4 directions of "swiping"
+    8x8 pixels texture, perhaps 16x16 at most.
+CITY MAP, good working, all of it implies sane gamestate code. and one complete
+    map. Nothing special, just a big 40x40 grid, something like that. with
+    squares, park, colored doors on various sides of each square, 
+    10x20 street grid. one city block between each, except bordering streets.
+HUD implies life meter, ammo meter, gun icon, bat icon, 
+    ((hell, we dont even get DOORs in v1. just the map, 
+    the zombies, the health meter, the weapon.))  
+    ((this presumes a lot of stuff: like how monster spawning works, 
+    or if we just clean out the level and get to the end, 
+    and get a "Congratulations!" screen at the end. Yeah, that's it))
+SINGLE MONSTERS, Get to the End, Completion Screen. (no spawns) 
+NO LUA (just do it all in C++)
+BAT ATTACK start with bat only, have to find gun, good bat animation in 4direc.
+GUN ATTACK keep it simple, stupid. 1pix = bullet, perhaps just in 4 directions
+    w/ 4 directions of player gun animation. (both shooting and stationary)
+    stationary would be: "walking_left_with_gun", and then "shooting_left"
+WORKING DOORS might as well, since the code already works good. just have it
+    so that you can see what is inside the rooms.
+HEALTH PACKS 
+AMMO "box of cartriges"
+NOTIFICATIONS area, like in curses version, tells you where you are, what time
+    of day, things you may hear or see, or occur to you
+MESSAGEBOX pops up in middle of screen and pause/blocks action from occuring
+    until you answer
+SOUNDS a minimal set of acceptable sounds and music.
+MENU even a most minimal version needs a menu & splashscreen
+SPLASHSCREEN
+SCORE SCREEN once you beat map, tells you how long it took, how many kills
+    you had, your hit/miss ratio, and the points awarded (bonus for time, 
+    bonus for no deaths, bonus for 100% killed, etc..)
+GAMESTATE handle death, restart at beginning (in v1.0), also handle ESC key, 
+    which asks if you'd like to return to main menu, Y/N
+GVARS
+    g_showHud 1
+    com_allowConsole 1 // for hiding it, when we release demo binaries
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+and that's it, you'll finally have your game.  that's still a lot of stuff.
+but it's not that bad. especially, if my new graphical strategy works out.
+I might go ahead and create a new HG repo as the very first thing, so that
+the SVN version will be a preserved record.  (oh, that's right. starting from
+scratch, commit=1, because I dont want all the extra muck from the SVN).
+
+re-write: 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ANIMATIONS: (8x8, or 16x16, pixelled, as damn simple as possible)
+player_move_left_bat  
+player_move_right_bat
+player_move_down_bat
+player_move_up_bat
+player_move_left_gun
+player_move_right_gun
+player_move_down_gun
+player_move_up_gun
+zombie_move_left
+zombie_move_right
+zombie_move_down
+zombie_move_up
+player_swing_left
+player_swing_right
+player_swing_down
+player_swing_up
+player_shoot_left
+player_shoot_right
+player_shoot_down
+player_shoot_up
+zombie_attack_left
+zombie_attack_right
+zombie_attack_down
+zombie_attack_up
+player_use_left  (holding out arm, and doing something with hand)
+player_use_right
+player_use_down
+player_use_up
+gun_sprite (literally can be 4x1 grey pixels)
+ammo_sprite (2x2 grey)
+healthpack_sprite (5x5 white w/ 3x3 redcross)
+
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+MAP:
+make 1 single map, a giant grid.  10x20, or 20x20 city, that's in streets, so
+20x20 city blocks, w/ 20x20 streets, and put doors on most of those blocks.
+put the park in the middle, the cemetary, complete the map, no exits, no leaks
+a starting point, and an ending point.  populate the entire map with a few 
+hundred zombies...
+
+X ZOMBIE AI CODE.  just wander, if see player, move towards him slowly, attack
+    when within range
+
+X get the new sprites walking around the new map, looking good, moving correctly (without weapons)
+
+X PLAYER ANIMATIONS
+
+- INVENTORY - Item_t:: you find them, you pick them up, 
+    they are added to your inventory. You need a LOCKBOX Item_t, which can
+    serve as a general place to find random items. finding ammo adds to ammo,
+    finding gun adds to gun and so forth.
+    - HEALTHPACKS :: distribute around the map
+        ((this is getting replaced by food for now))
+    - RIFLE ITEM :: the rifle is something you have to find
+    - AMMO        :: rifle ammo is something you have to find
+    - BASEBALL BAT :: you have to find this too, but it should be easy
+
+- FURNITURE ::
+    - LOCKBOX 
+    - REFRIDGERATOR
+    - ARMOIR :: 
+
+- INVENTORY SCREEN & MANAGEMENT - ability to inspect, drop, use, ... your inv.
+
+- BAT ATTACK (figure out correct damage radius, and zombie damage)
+X ZOMBIE ATTACK (ditto)
+
+- GAMESTATE CODE : once player gets 0 damage, restart the level
+
+- MAP RELOAD & MUSIC RELOAD FIX
+
+- MESSAGEBOX (both blocking & unblocking) pop-up in the middle of the screen
+    on level restart post message right at beginning "Go getem tiger!"
+    "opening a lockbox. You found.... Nothing"
+    "opening a lockbox. You found.... a candle"
+    ((MessageBox pops OVER the screen and might even have its own 
+      background graphic or color)). 
+    K ability to animate text, or time text. not too fancy, but perhaps,
+        the ability to a) print text in a specific location in relation 
+        to x,y corner of messagebox, b) ability to time & fade some text. 
+        combinations: time to fade-in, time to appear, time until fade out,
+        duration of fade out, MIGHT BE OVERKILL FOR THIS VERSION
+    - abstract the mvPrintf function so that it is a wrapper for either
+        Freetype or GLFonts print statements.
+
+- NOTIFICATIONS :: display those cooky messages
+    two areas: location_notification: "Freeway Overpass", and notifications: 
+    "you see zombie george peppard duck into a fashionable menswear store"
+    ((not to be confused with MessageBox))
+
+- AREA TEXT LABELS & RANDOM MESSAGES :: (from original curses, displayed
+    so each map square can have it's own text, encoded right in the mapTile,
+    which is displayed when you are over it.
+    - random messages could be loaded from script, say in a Lua array
+    - area text labels could be done by writing a pop-up box class for larger
+    text entry, what this does is gives me the ability to BACKSPACE, and 
+    OK/CANCEL. so in console you type 'addmsg' to a highlighted mapTile(s), 
+    and another box pops OVER the console, with a large text entry area, and 
+    you just type it and hit OK
+
+- TITLESCREEN(S) - 1)Main Game Title Screen, 2)Story screen
+    (((we need the setup to set the story, This is very important! furthermore 
+    if I could get a couple good graphics for each: good title, good background
+    picture for story. I would be in hog heaven)))
+
+- HUD :: LIFE METER, LIVES METER, AMMO METER, GUN ICON (if have it), BAT ICON. 
+    highlight which item using, so if only have bat, have only bat icon and
+    make it highlighted
+
+- GAMESTATE :: handle entering END square
+
+- NPCs :: non-hostile, may tell you a MessageBox worth of dialog. 
+    may give you an item. may be a hillbilly and say weirdshit.
+    non-interactive at this point, except that you may USE near them and a)
+    see a block of text, b) if they have something to give you they will. can
+    re-use the zombie sprite, just paint it different colors. and have it not
+    chase you, but walk around and stand around a lot more. 
+
+- SCORE SCREEN :: come here after hitting END square
+    hit/miss gun, hit/miss bat, kills bat, kills gun, total kills, time, 
+    bonuses, total points
+
+- GAMESTATE :: handle after score screen
+
+- MENU :: New Game, Exit (that's it in v1)
+
+- SOUNDS :: spruce up bear minimum good sounds & music
+
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+error handling, needed:
+
+both:
+X if freetype fonts not found, pop messagebox: "Error: missing fonts!" 
+
+on regular game load:
+- if fs_game directory does not exist, pop messagebox "Error: can not run w/o game data!"
+
+on mapedit load, when saving a map:
+- if fs_game directory does not exist, attempt to create it, as well as
+    "%s/maps", fs_game->string()
+
+- figure out what fonts we DO use so far, and only include those. the mapedit one for sure. 
+
+- also, shouldn't we have a way to request font by name? 
+------------------------------------------------------------------------------
+20090922
+
+moving alone, fixing bugs, building a city map. I have mixed feelings over what I see but overall, I'm on the right track. I'm thinking about doing a top-down sprite which basically just shows shoulders+head+arms+legs+gun mostly it's just shoulders with a couple bleeps to indicate walking, and holding a gun. we'll try it. it better work. I know it will. 
+
+and then... do the zombies. then do the zombie AI, and then do the zombie Attack. but there are then problems, like we need sounds, so what this means is that I need a way, IN SCRIPT to specify which textures, and sounds to load for everybody, but then again, this is a GET IT DONE build, so I guess I can hardcode everything.  BUT STILL?!!
+
+So do zombies, they can be ALL ONE COLOR, a kind of sickly orange, and then you do the AI, have them wander towards you if in range. I have Line-of-sight already. (((hmm, lets check the list)))
+
+do a bunch of animation sprites, then do attack code. my gun code still works.
+
+--------------------------------------------------------------------------------
+20090923
+ENTITYS:
+    - unique id. if we're going to have one, here's how it works: Each extended
+        class gets it's own private static int id; that is incremented on 
+        every constructor or copy-constructor, regardless. Soo, if we copy
+        an item, say: Door_t, we look at the name. well, 2 cases, if we
+        create a new one, we simply call AutoName(), but if we copy a Door,
+        say it's named: BIG_DOOR, then do we attach a number to the end? 
+        right now we're .... you know what, fuck it. You could have 2 names?
+        its AutoNamed name, and a given one, the given one may or may not 
+        exist, if it does, use it, it's autoname will always be Door_ and an
+        incremented id, so all doors will have names Door_0001, Door_0002,
+        but they can also be given names, so if the 2nd door were given a name  
+        it would look like this: DOor_0001, BIG_WOODEN_DOOR, Door_0003, ...
+
+    yeah, but back to KISS, and Git er done. Just make a game, worry about this
+    bullshit later.
+
+- add ability to set Zombie initial direction in Console
+X finish zombie copy-con
+X work on zombie AI & animation sprites
+X add scan ability (like the robot has)
+X create a standing animation, not just sprite, either that, or just choose
+    a random frame from current animation.
+X chasing animation (using walking sprites)
+X zombie attacking animation
+
+++++++++++++++++++++
+- ** Big Bug: collision model doesn't turn when the Entity_t turns.  this makes collision detection only appear active when the thing in question is in its original position.  
+
+well, this is a doosey. I have to either do 90,180,-90 degree rotations around poly center , which if it works would be the smartest. not only that, but projectiles are currently shooting in increments of 45degrees as well.  so that's the first thing to try. the 2nd thing is you have to do a unique AABB for each animation. that just sounds clunky and wasteful. I'll try the first thing first.
+
+what do you need? well, you have an initial direction. You need to save that. or better yet, the initial direction should be UP. and RIGHT = 90, DOWN = 180, LEFT = -90. ok. so 2nd we need to use the math, and alter the colModel, 3rd, we need to save the original, because all modificatons are done by dot-prodding against the original.
+
+- UP = 0, RIGHT = 90, DOWN = 180, LEFT = -90
+- save original colModel AABB somewhere
+- modify the colModel by the corresponding turn amount
+    - when? when we turn? this applies to all entities, so there should be 
+        a uniform way that goes in the base class
+    - create uniform Entity_t::rotate(), Entity_t::addRotate() functions
+ 
+++++++++++++++++++++
+x install the original explosion animation. (but not laser bolt, just 4-frame
+    explosion)
+- put Zombie manipulations in the Console. so I can set initial: direction,
+    and walking or standing. this also means that you have to put it in the
+    map reading/writing code too.
+- when engaged in attack animation, finish the animation, even if the state
+    changes to something else
+- when beginning an attack animation, start it on frame 0
+==============================================================================
+20090924
+- zombie death animation
+- player animations, all of them
+    - walk 4 directions
+    - walk 4 directions w/ bat
+    - walk 4 directions w/ rifle
+    
+==============================================================================
+20090925
+
+This is really fun!  I just fixed up the zombie animation some more, and they
+are incredible! what a great job I did with those.  They move and run around 
+all over the place.  and are very entertaining, almost lifelike to watch. I'm
+totally digging it. Definitely one-better than the robots'.
+
+So, I have yet to do the zombie death animations.  I like the idea of particulating them in a digital kind of way, just schmoozing them into a pile of junk that blows apart, and eventually goes away after a bit.
+
+Z_TURNING is broken and I figured out why, because there is a turn timer, so,
+once they even roll a 95/100 or whatever (5% chance), then, odds will have
+it, the timer is not up, meaning that reduces the odds to practically 1 in 1000
+that's why you never see them enter that state.
+
+next:
+    X the com_resolution bug
+    X when Z_STANDING, they still do walking animation, which looks stupid,             like they're stuck
+    X bug in Z_ATTACKING animation, in that it starts over if you move just
+        out of range.  it is supposed to finish animating NO MATTER WHAT
+    C fix Z_TURNING problem (giving up)
+    S use state variable to govern START_ATTACKING, WAS_ATTACKING
+        could provide ent->changeState() function
+        ((seems to be working, fukkit)
+    X do player animations
+    X zombie needs path, meaning, if you run around a corner, he should at 
+        least chase to where he last saw you (with some chance of not making it)
+        algorithm: each update, if zombie can see player, zombie saves player's
+        position. when player goes out of range, zombie CONTINUES Z_CHASING
+        until it reaches the last known position of the player. THEN it goes
+        back to STANDING & TURNING. (not walking), to signify that it's looking
+        for the player. (well could have % chance roll. 65% it stands, 35% it
+        walks)
+    X gun & basebal bat Items + sprites
+        - Lee-Enfield rifle
+        - Wooden Baseball bat
+        - .303 Stripper clip (5 bullets)
+    S healthpack &/or food sprites
+    - Item_t and Inventory code, a
+    - when shot or bumped into zombie should have state = Z_CHASING
+        and just guess which direction to chase into. set the state timer,
+        guess a location, and state = Z_CHASING_BLIND
+    - BUG: zombie can push player INTO wall
+    - redo Z_DYING animations
+    - do player animation handling code: _getMat()
+        (in order to do this, I need gun & bat items)
+    - door size is too large on city map
+    - apartment building is too large
+    - blocksize isn't correct
+    - rotate colModels correctly
+    - why were entities thinking 3-4 times per every getMat() call?
+        figure that out.
+    - console in-game doesn't come down nice the VERY FIRST TIME 
+        fix? when you start the graphics have it open and close the console
+        a few times.
+    - go through and fix all the compile time warnings, (416 at this count)
+    - map_reload - get it working flawlessly
+    - fix legs on zombie sprites. either: a) remove them, b) space them further
+        apart. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+you know, I could have different & better guns and not have to change the
+sprites. so all I have to do really is to change the damage & rate of fire,
+and ammo availability and all that.  So yeah, for now, just the 1 rifle, but
+later, if it comes up, you can add new weapons easily
+
+the one thing I did badly in the ammo+rifle+bat sprites is that I used 3 
+different sprite-styles. the bat is 16x16, the rifle is 32x64, the ammo is 32x32. for now I keep em. they're all good enough, the only catch is that they are like mixing genres. oh well, maybe these days, that's a good thing.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+I would like to start moving towards text, and away from the action/graphical
+element. weird isn't it? that I would create a game that has at its base a 
+fast opengl engine, but realize that what I really need to do is a graphic 
+minimal RPG with lots of text, and stagecraft rather than good, solid game
+mechanics.  getting all of those to work just takes too bloody much time and
+effort.  whereas if I just set up lots of basic ways to erect dialogs I can
+write it all out.  I find that with text, it is much more emmersive FOR ME,
+but that there is a cost to entry. Hell, even with Fallout2 there were a 
+whole few hours where I was dubious of everything about it.  But then wham,
+at the end of that first dungeon, by the time I got to the end , I was hooked,
+it had worked its magic and I had lowered my guard, or perhaps acclimated to
+the lower information baud-rate of it.  
+
+So I opted to make a realtime movement game, well, because really I am still
+following the original vision that I had at the beginning of this project 4
+years ago, which was top-down dungeon exploration, large world, free movement,
+simple graphics, BUT use OpenGL in case along the way you figure out how to
+write shaders or other special effects.  so here I am, 4 years later, and still
+banging away on it. thing is: I have to finish a game now.  So I need to 
+point myself straight towards the simplest way to do that. I CANT have lots of
+fucking graphics.  Pixelling for me is one of the most difficult things. the
+strain it puts on me is unbelievable and I have to take special measures
+psychologically to even approach it. Though I have gotten better, and one of 
+the ingenious things I did on this project. So anyway, I'm afraid that in this 
+project, the story is still going to come last.  there are a few primary 
+mechanics still left to be worked out. I think text interaction is the only
+way that I'll be able to fill the world with anything interesting enough to
+cause the player to WANT to explore.  when I run in a map now I get the singly
+empty feeling that I don't know what for. I need a reason to be excited about
+it. good reasons included: *) amazing artwork, *) new items/equipment, *) NPCs
+to talk to, *) things to discover, *) quest advancement, *) lust for new items
+that can be found or purchased/gained through combat.
+
+See.. this last one "quest advancement" presumes the existence of a quest. and "equipment lust" assumes the existence of an equipment system. neither of which I have.  but yet to finish, I need slightly less than both of those.
+
+to do v1. remember, we're aiming low on the pole here.  I do need initial story screens. Where I lay out the story IN EARNEST.  it only needs to be one or 2
+short paragraphs of text, just like original zombiecurses, then, you enter the
+city.  There should be southwest wind blowing to signify empty, and we should
+have a dual text alert system like the first game. two areas for on-screen
+text: 1) short label description (max 3 words) of what area we are in, 2) random longer messages that pop-up, thoughts, things you hear or see, "it's a full moon", "you find a sleeping bag". all of that. it's the notification area. I already have it in console ready to go. that would help immensely, because otherwise
+what you have are these gigantic solid color pixels. a few words would aid
+to color them immensely.  
+
+I like the idea of overdoing it on gear.  One way I could do this, would be to
+have a single "lockbox" sprite, a square metal box.  greyish blue and dinged
+up.  and the player can walk over to it, and USE against it to see if they can
+get it open, and then do a random role to see what stuff turns up.  THEN just
+tell them with a MessageBox.  You find a jar of medicine.  player hits any
+key, the medicine is added to the inventory, that's it.  All fucking text,
+just GIt' R Done!
+
+ok, so I think I see where this is going.  so there's 4 out of game screens
+total. MainSplash, Story, Menu & Level Complete.  each one needs some kind of
+unique, original artwork. there's also an inventory screen. I might just make
+it somethin you navigate with the arrow keys and return.  yes, that would make
+sense.
+
+you probably need a way to scroll backwards through past notifications as
+well.  So there'll be some care used in formatting the notifications, whatto
+leave in, what to leave out. say everything with relation to gameEngine is
+suppressed from printing if (com_debugMessages->integer() == 0), but those 
+messages might still need to get shunted out to a log file or something or 
+else how else would I get bug reports?  yeah, so that whole error management
+systems is pretty fucked.
+
+It's really not that much stuff. those 4 screens, inventory, HUD, menu, 
+I should do NPCs then, and then you'll basically have a re-creation of the 
+original 4yr-old curses-based verion.  but this time i finish it. I have the
+television station (homage to George Romero), and the boat on the lake, you
+need the boat keys, and the subway, and .... a bunch of brownstones to loot.
+and store fronts, and a park.  
+
+I'm not too far.  a couple months maybe.   I have to re-do the city map 
+completely, and really pay attention to scale this time.  everything in that
+map is TOO LARGE.  and the player shouldn't be an odd number, 384 in size.
+that's just dumb.  soo,
+
+* Standardize sizes and magnification.  so that it mostly stays the same 
+across everything.  this will make it easy for you to do mapping.
+
+Shit. what about. well, lets say you do a white square and want to call it 
+"a refridgerator".  (sp?).  well, you need to post a message to one of the
+notification areas, the Area one.  then it should say: "
+
+        Kitchen
+        
+        a refridgerator
+
+just as you get right next to it.  This is how you will recognize items before
+you interact with them.  you may choose to.  you can do this with any entity.
+
+        street
+
+        a lady
+
+or
+
+        Sidewalk
+
+        a dog
+
+most items you just walk over to pick up. BUT, .. so in this way, INSTEAD of
+making all these massive sprites. I can just literAlly have a black dot on
+the street signify something of interest, but you need to walk over to it 
+before you find out what it is.  then when you get near enough proximity 
+wish, the text indicator displays what it is.  Also, when in this range you
+should then be able to USE against it for further interaction. 
+
+so this goes back to the furniture idea. that you can have safes, chests, 
+lockboxes, divan, armoir, refridgerator, cabinet, closet.  all of which
+doesn't need to be represented by anything too special ON THE MAP.
+
+In fact, keep the map unified in its design by keeping it all blocky pixels
+like that Jason Rohrer game.  
+
+But you can use your special sprites (if you want) in the inventory and 
+messageBox (probably v2)
+
+so , we see blackdot ( this is genious, you realize), walk over to it, and
+encoded information tells us it's a lockbox, we USE it, to open it, and then
+get a MessageBox telling us what's inside.  A similar message is also posted to 
+Notifications for record keeping. 
+
+MessageBox: 
+
+    A Lockbox. Inside you find:
+        - a pliers
+        - a leatherman
+        - roll of duct tape
+
+    take all? [Y/n]
+
+Notifications:
+
+    player got a pliers, leatherman and roll of duct tape.
+
+You realize of course that this is SHEER GENIUS! I only say that because I am
+the only guy in the world who WOULD make this game, but I think millions of
+people would play it.  It's fascinating.  We love our stuff.  Our lives are
+filled with stuff.  Just collecting it.  Seeing the words.  Is lovely lovely.
+It's like a text adventure, but with a 2D shooter too.  Yeah, I might even
+be able to sell v1, it's such a revolutionary idea.
+
+I might want to toy with angel funds and get some kind of community outreach
+and publicity.  maybe... ok, can no longer type.  time for shower and cleaning.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+TEXT INTERFACES (types of)
+* MessageBox (# center screen w/ background box)
+    blocking/unblocking, timed/permanent, pops up over screen, takes simple key
+    input responses [Y/n], 
+        *types:
+        - OKBox (single message box w/ OK button, is BLOCKING, input dependent)
+        - MsgBox (single box, is blocking, timed, input override)
+        - MsgBoxNonBlock (same as MsgBox, but doesn't freeze game)
+        - YESNOBox (same as OK, but returns result of user query to caller)
+            handles: TAB, LEFT_ARROW, RIGHT_ARROW, RETURN, Y, y, N, n,
+        *msgBoxes block all system commands like ESC & '~'
+* Notifications (# top-left)
+    same thing as cl_console, but prints over screen. Have the code already.
+        ((further wrapping may be necessary))
+* AreaMessage (# top-right)
+    mapTiles tell you what they're supposed to be.  This way you always know
+    where you are. street, building, doorway, ...
+    areaMessage_c (singleton, abstracted between MVC, where view is located 
+        in renderer)
+* EntityMessage (# top-center)
+    furniture tells you what it is: "A refridgerator", "A desk", "A lockbox"
+    NPCs might say something
+    entMessage_c (singleton) MVC
+* (v2) BattleMessage
+    pops up "-20" over enemies head when hit, or +20 over players head when
+    he uses a healthpack. text floats/moves before it fades out
+* (v2) NPCMessageBox 
+    textbox popsup over entities head like bubble-dialog in comics
+    things that people just say aloud, if you're close enough to read it,
+    presumably you're close enough to hear it. (from Fallout2)
+
+*** SPECIFY SCALE:
+    Player = 1024x1024
+    wallthickness = 128
+    item = 128x128
+    bigItem = 256x256
+    zombie = 1024x1024
+    zoom = 10
+    doorThick = 128
+
+*** SPECIFY WHAT ISNT IN v1
+    - NPCMessageBox
+    - Interactive NPCs
+
+*** ITEMS, Furniture & NPCs get both 
+    - PROXIMITY MESSAGE                 (prints EntityMessage_t)
+    - USE MESSAGE                       (
+    - USE EFFECTS (eg. grant health, alter weapon damage, make drunk, 
+                        hurt health, destroy item, )
+    - DETAIL INFO (items get this in inventory screen)
+
+*** HUD:
+    - (v2?) sprited border
+    - CURRENT_WEAPON (shows using sprite)
+    - HEALTH
+    - AMMO for current weapon (shows ammo clip & "x 50")
+    - LEGEND for (k)ey shortcuts??
+    - CURRENT_PLAYER_STATE: happy, rested, sick, ill, sad, lonely, full, 
+        (like in Nethack) drunk, high, healthy, just one word in the hud.
+    - TIME_OF_DAY (fictitious). do day cycle: morning, day, noon, evening,
+        nighttime, etc...
+    - (v2): any effects that the player may currently be under due to items 
+        (eg, shows bottle of whiskey because player is drunk, and stats are
+        lettered in red, because of the effects of the whiskey)
+
+*** INVENTORY
+    - list of items with a sprite marker at left.  You can :
+        - move the marker up and down with the arrow key
+        - a box on the right shows DETAIL_INFO for the highlighted item
+        - press 'U' or Enter to USE the item. A message box is popped up.
+            "are you sure you would like to use the screwdriver?"
+            y = lower Inv screen, jump to game
+            n = nothing happens, remain in inventory
+            Notifications:
+            "player tried to use the screwdriver... no effect"
+
+            some items will just print 1 solitary messageBox but stay in
+            Inventory, eg, cellphone: "You can't get a signal"
+            and that's it.  stays in Inventory. and just says can't get a
+            signal.
+    - sprite icon shows weather the item is I_TOOL, I_FOOD, or I_WEAPON
+    - (v2) press enter to get a detailed description & larger picture
+    - (v2) can use some items on each other, eg. charger on cellphone
+    - arrow key takes you to notifications screen
+    - total weight carrying: (each item has a weight)
+
+*** ESCAPE_MENU
+        "'Q'uit to main menu [n/Y]?"
+        - (v2) key bindings
+        - (v2) settings: video, audio volume,  
+        :pressing ESC again returns to the game or 'n' or anything not 'y'|'Y'
+
+*** MAIN_MENU
+        - have an up+down list again, of items you activate by pressing
+            Enter or Space, (but also with hot key like windows menus)
+        - start 'N'ew game
+        - 'Q'uit zombie curses
+        - in the absense of any player input, screen cycles between Menu, 
+            high scores, Title, & Story over 15-30 second intervals.  
+            but the second that there is any input, it jumps back to menu.
+        - (v2) credits (ALWAYS GIVE YOURSELF GENEROUS CREDIT, 
+                        Carmack and Romero did), all it needs to be is just
+            one screen telling who you are, your companies name, phone, url
+        - (v2) key bindings
+        - (v2) settings: video, audio volume
+
+*** SCORE_SCREEN
+            you need to rate the players performance somehow. How much money
+            did they have? how many days did they stay alive? how many zombies
+            did they kill? how much stuff did they get? this means that I need
+            to enter a name for the player.
+    - just one screen that shows all the stats for this particular game.
+    - after key_press go to highscores screen. set gamestate = GS_CYCLE, 
+        so that it is cycling through states. another keypress will rouse it
+        to return to the main menu
+
+*** NPC (see above) basically just a different color zombie that just walks
+    or stands around.  and you can use near them and they might give you 
+    some information in the form of a MessageBox (and saved to Notifications)
+    oh, and they might give you something. (I suppose could steal something)
+
+*** NOTIFICATIONS_VIEWER
+    - ability to scroll backwards and read all notifications
+    - left|right arrow key can take you to Inventory
+    - up and down arrow will scroll, page-down/up will go further
+    - (v2) textured border
+
+*** PLAYER_INTERFACE_CODE
+    - switch current weapon, really, just hardcode this stuff into the 
+        player.cfg code
+    
+*** PLAYER_STATS (the whole thing smells of v2 to me)
+    - SPEED: - how fast you move
+    - STRENGTH: - weapon damage bonus
+    - INTELLIGENCE: 
+        - science bonus (anti-zombification cure)
+        - medicine/medpack bonus
+    - KNOWLEDGE: - camping:(use gear to gain health) 
+    - COOKING:
+        - health gained from food bonus
+    - (v2) COMMON SENSE:
+        - ability to recognize NPC is a crook (in v2, have a little meter to
+            the side that shows what the odds are in your estimation that this
+            person is a crook or not)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Items
+
+- the player has a list of items 
+
+- Items are defined, including their strings in g_itemDefs.cpp
+
+- when a player contacts an item, 
+    it first calls ItemHandler_c::Handle().  if the item has an effect
+    that affects the player, this effect is passed to the player's effectHandler
+    the player needs to handle itemEffect because it 
+    may involve player's data, such as HP, health, location, ...
+
+- ItemHandler_c is facade-wrapper for Item related functions
+
+- ItemHandler_c class. 
+
+class ItemHandler_c : public Allocator_t {
+    void Handle( Item_t * ) ;
+};
+
+- Item_t(), ItemHandler_c(), 
+
+- The Player_t must export interfaces for what it does with its items.
+Player_t::ItemEffectPlayer( 
+
+X NOTE: move g_itemDefs.h into g_item.h, no sense in having 2 headers for
+    Item system
+
+==============================================================================
+20091005
+- add the ability to change what kind of item it is in the console
+- items created default to some kind
+- when the item's kind is changed (via console) a complete Item_t is generated
+    via the CreateItemByID() call, it's size & location set, and the item
+    it is replacing, removed 
+    :: OR ::
+    - either way: item specfic data must be saved in the mapFile, or an 
+        exception must be added into the mapReading code that checks if an
+        entity is an Item_t, if it is, it uses an alternate code path to
+        create it and set it's location
+- create the entMessage_c class, model+view+controller.  and give it hooks
+    into the text rendering functions
+- entities proxMessage is TRIGGERED, 
+- entity is activated or picked up via it's CLIP

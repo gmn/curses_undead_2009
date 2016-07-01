@@ -1,0 +1,20 @@
+
+* unzip ft236.zip
+
+* cd freetype-2.3.6/builds/win32/visualc/
+
+* open freetype.sln with VS.2005
+
+* 4 choices to compile: single-threaded/multi-threaded, Debug/Release
+
+* copy everything from freetype-2.3.6/include to your system include directory.
+	( mine is  C:\include )  The new dir should be called:  C:\include\freetype
+
+* similarly, copy the *.lib file from freetype-2.3.6/objs into your system
+	lib directory.  ((( mine's C:\lib )))
+
+* Make sure those paths are setup in your project
+
+* make sure you include ft2build.h and the *.lib in your project preferences
+
+
